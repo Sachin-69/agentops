@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AgentOpsAI: Agent Observability and Evaluation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --font:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-display:"Space Grotesk","Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --bg:#000; --panel:#0a0a0b; --panel2:#131316; --panel3:#1F1F22;
+  --border:rgba(255,255,255,.08); --border2:rgba(255,255,255,.12);
+  --accent:#fff; --sky:#7dd3fc;
+  --green:#4ade80; --red:#f87171; --amber:#fbbf24; --violet:#c4b5fd;
+  --text:#fff; --muted:#a1a1aa; --faint:#63636b;
+  --mono:ui-monospace,"SF Mono","Cascadia Code",Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:var(--font);background:radial-gradient(1000px 480px at 85% -5%,rgba(125,211,252,.07),transparent 60%),radial-gradient(800px 480px at 5% 0%,rgba(196,181,253,.06),transparent 55%),var(--bg);color:var(--text);font-size:14px;line-height:1.5;min-height:100vh}
+/* ---------- top nav ---------- */
+.topnav{position:sticky;top:0;z-index:50;background:rgba(0,0,0,.55);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.topnav.scrolled{background:rgba(0,0,0,.82)}
+.nav-inner{max-width:1280px;margin:0 auto;padding:0 24px;height:72px;display:flex;align-items:center;gap:8px}
+.brand{display:flex;align-items:center;margin-right:28px;text-decoration:none;color:var(--text)}
+.wordmark{font-family:var(--font-display);font-size:19px;font-weight:700;letter-spacing:.01em}
+.wordmark span{color:var(--muted);font-weight:500}
+.nav-links{display:flex;align-items:center;gap:4px;overflow-x:auto;flex:1}
+.nav-item{display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;color:var(--muted);cursor:pointer;font-size:13.5px;font-weight:500;white-space:nowrap;border:1px solid transparent;user-select:none;background:none}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,.05)}
+.nav-item.active{color:var(--text);background:var(--panel3);border-color:var(--border)}
+.nav-actions{display:flex;align-items:center;gap:8px;margin-left:12px}
+/* ---------- hero ---------- */
+.hero{min-height:92vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;position:relative;overflow:hidden;padding:120px 24px 80px}
+.hero video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55;z-index:-2}
+.hero::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(to bottom,rgba(0,0,0,.55) 0%,rgba(0,0,0,.25) 45%,#000 100%);pointer-events:none}
+.hero .kicker{font-size:12px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-bottom:22px;display:flex;align-items:center;gap:12px}
+.hero .kicker::before,.hero .kicker::after{content:"";width:36px;height:1px;background:rgba(255,255,255,.25)}
+.hero h1{font-family:var(--font-display);font-size:clamp(56px,10vw,124px);font-weight:700;letter-spacing:-.03em;line-height:1;margin:0}
+.hero h1 span{color:transparent;-webkit-text-stroke:1.5px rgba(255,255,255,.85)}
+.hero .tag{margin:22px 0 0;font-size:clamp(15px,2vw,18px);color:var(--muted);max-width:620px}
+.hero .cta{display:flex;gap:12px;margin-top:36px;flex-wrap:wrap;justify-content:center}
+.hero .cue{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);color:var(--faint);font-size:11px;letter-spacing:.25em;text-transform:uppercase;animation:cue 2.2s ease-in-out infinite}
+@keyframes cue{0%,100%{opacity:.35;transform:translate(-50%,0)}50%{opacity:.9;transform:translate(-50%,8px)}}
+/* ---------- layout ---------- */
+main.main{max-width:1280px;margin:0 auto;padding:36px 24px 80px}
+.pagehead{margin:6px 0 24px}
+.pagehead h2{margin:0;font-family:var(--font-display);font-size:34px;font-weight:600;letter-spacing:-.02em}
+.pagehead .sub{color:var(--muted);font-size:14px;margin-top:6px}
+.panel h3,.modal h3,.agent-card h4{font-family:var(--font-display);letter-spacing:-.01em}
+/* ---------- buttons/inputs ---------- */
+button,.btn{background:#fff;color:#000;border:none;border-radius:999px;padding:10px 20px;font-weight:600;cursor:pointer;font-size:13.5px;transition:background .15s,transform .06s;font-family:var(--font)}
+button:hover,.btn:hover{background:#d4d4d8}
+button:active{transform:translateY(1px)}
+button:disabled{opacity:.5;cursor:not-allowed}
+button.ghost,.btn.ghost{background:#1F1F22;color:#fff;border:1px solid rgba(255,255,255,.05)}
+button.ghost:hover{background:#2A2A2D}
+button.danger{background:transparent;color:var(--red);border:1px solid rgba(248,113,113,.4);box-shadow:none}
+button.sm{padding:7px 14px;font-size:12.5px}
+label.lbl{font-size:12px;color:var(--muted);display:block;margin:12px 0 5px;font-weight:600}
+input.in,select.in,textarea.in{width:100%;padding:10px 14px;border-radius:12px;border:1px solid var(--border);background:#0c0c0e;color:var(--text);font-size:13.5px;font-family:var(--font)}
+input.in:focus,select.in:focus,textarea.in:focus{outline:none;border-color:rgba(255,255,255,.3)}
+input.in.mono{font-family:var(--mono)}
+textarea.in{min-height:76px;resize:vertical}
+.search{background:var(--panel2);border:1px solid var(--border);border-radius:999px;padding:9px 16px;color:var(--text);min-width:220px;font-size:13px;font-family:var(--font)}
+.search:focus{outline:none;border-color:rgba(255,255,255,.3)}
+/* ---------- cards/panels ---------- */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:18px}
+.card{background:linear-gradient(180deg,#101012,#08080a);border:1px solid var(--border);border-radius:20px;padding:18px}
+.card .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:6px}
+.card .v{font-size:30px;font-weight:600;margin-top:6px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.card .d{font-size:12px;color:var(--faint);margin-top:2px}
+.panel{background:rgba(255,255,255,.015);border:1px solid var(--border);border-radius:20px;padding:22px;margin-bottom:18px}
+.panel h3{margin:0 0 4px;font-size:15px;letter-spacing:-.01em}
+.panel .desc{color:var(--muted);font-size:12.5px;margin:0 0 14px}
+.grid2{display:grid;grid-template-columns:1.2fr 1fr;gap:18px}
+@media(max-width:1000px){.grid2{grid-template-columns:1fr}.nav-links{display:none}main.main{padding:24px 14px 60px}}
+/* ---------- table ---------- */
+table.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;padding:9px 12px;color:var(--faint);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border);white-space:nowrap}
+.tbl td{padding:11px 12px;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:middle}
+.tbl tr.clickable{cursor:pointer}
+.tbl tr.clickable:hover td{background:rgba(255,255,255,.03)}
+.tbl .mono{font-family:var(--mono);font-size:12px}
+.tbl .num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:3px 12px;border-radius:999px;font-size:11.5px;font-weight:600;white-space:nowrap;border:1px solid}
+.badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.badge.success{background:rgba(74,222,128,.1);color:var(--green);border-color:rgba(74,222,128,.25)}
+.badge.error{background:rgba(248,113,113,.1);color:var(--red);border-color:rgba(248,113,113,.25)}
+.badge.running{background:rgba(251,191,36,.1);color:var(--amber);border-color:rgba(251,191,36,.25)}
+.filters{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.chip{padding:7px 16px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12.5px;cursor:pointer;font-weight:600;font-family:var(--font)}
+.chip.active{background:#fff;color:#000;border-color:#fff}
+.empty{padding:36px 20px;text-align:center;color:var(--faint)}
+.empty .big{font-size:34px;margin-bottom:8px}
+/* ---------- waterfall / trace ---------- */
+.waterfall{display:flex;flex-direction:column;gap:7px;margin:14px 0}
+.wf-row{display:grid;grid-template-columns:230px 1fr 76px;gap:10px;align-items:center;padding:8px 10px;border-radius:10px;cursor:pointer;border:1px solid transparent}
+.wf-row:hover{background:var(--panel2)}
+.wf-row.sel{background:var(--panel2);border-color:rgba(255,255,255,.2)}
+.wf-name{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wf-name .tag{font-size:10px;font-weight:800;padding:2px 8px;border-radius:999px;margin-right:7px;letter-spacing:.04em;border:1px solid}
+.tag.llm{background:rgba(196,181,253,.1);color:var(--violet);border-color:rgba(196,181,253,.3)}
+.tag.tool{background:rgba(251,191,36,.1);color:var(--amber);border-color:rgba(251,191,36,.3)}
+.tag.run{background:rgba(125,211,252,.1);color:var(--sky);border-color:rgba(125,211,252,.3)}
+.wf-bar{height:14px;background:rgba(255,255,255,.05);border-radius:999px;position:relative;overflow:hidden}
+.wf-fill{position:absolute;top:0;bottom:0;border-radius:999px;background:#fff;min-width:3px}
+.wf-row[data-type="tool"] .wf-fill{background:linear-gradient(90deg,#b45309,#fbbf24)}
+.wf-row[data-type="llm"] .wf-fill{background:linear-gradient(90deg,#7c3aed,#c4b5fd)}
+.wf-ms{font-size:11.5px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.inspector{background:#08080a;border:1px solid var(--border);border-radius:14px;padding:16px;margin-top:6px;font-size:13px}
+.inspector h4{margin:0 0 10px;font-size:13.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.kv{display:grid;grid-template-columns:130px 1fr;gap:5px 12px;margin:8px 0;font-size:12.5px}
+.kv b{color:var(--faint);font-weight:600}
+pre.code{background:#000;border:1px solid var(--border);padding:11px 13px;border-radius:10px;overflow:auto;max-height:280px;white-space:pre-wrap;font-family:var(--mono);font-size:12px;margin:6px 0 12px;color:#d4d4d8}
+.sec-t{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);margin:12px 0 2px;font-weight:700}
+.copybtn{float:right;background:transparent;border:1px solid var(--border);color:var(--muted);padding:3px 12px;font-size:11px;border-radius:999px;font-family:var(--font)}
+/* ---------- eval scores ---------- */
+.scores{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px}
+.score{background:#08080a;border:1px solid var(--border);border-radius:12px;padding:10px 13px}
+.score .n{font-size:11px;color:var(--muted);text-transform:capitalize}
+.score .sval{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums}
+.score .bar{height:5px;background:rgba(255,255,255,.07);border-radius:999px;margin-top:7px;overflow:hidden}
+.score .bar i{display:block;height:100%;border-radius:999px;background:#fff}
+/* ---------- agents ---------- */
+.agent-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.agent-card{background:linear-gradient(180deg,#101012,#08080a);border:1px solid var(--border);border-radius:20px;padding:18px;cursor:pointer;transition:border-color .15s}
+.agent-card:hover,.agent-card.sel{border-color:rgba(255,255,255,.35)}
+.agent-card h4{margin:0 0 4px;font-size:14.5px;letter-spacing:-.01em}
+.agent-card .model{font-family:var(--mono);font-size:11px;color:#fff;background:rgba(255,255,255,.07);border:1px solid var(--border);padding:2px 10px;border-radius:999px;display:inline-block;margin-bottom:8px}
+.agent-card p{margin:0;color:var(--muted);font-size:12.5px;min-height:36px}
+/* ---------- modal/toast ---------- */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:50;padding:18px}
+.modal-bg.open{display:flex}
+.modal{background:#131316;border:1px solid var(--border2);border-radius:20px;padding:26px;width:100%;max-width:520px;max-height:90vh;overflow:auto}
+.modal h3{margin:0 0 4px;letter-spacing:-.01em}
+#toast{position:fixed;bottom:22px;right:22px;z-index:99;display:flex;flex-direction:column;gap:8px}
+.toast-msg{background:#1c1c1e;border:1px solid rgba(255,255,255,.2);color:#fff;padding:11px 18px;border-radius:12px;font-size:13px;box-shadow:0 8px 30px rgba(0,0,0,.6);animation:slidein .2s}
+@keyframes slidein{from{transform:translateX(20px);opacity:0}}
+.skel{border-radius:8px;background:linear-gradient(90deg,#131316 25%,#1F1F22 50%,#131316 75%);background-size:200% 100%;animation:sh 1.2s infinite;height:16px;margin:6px 0}
+@keyframes sh{to{background-position:-200% 0}}
+.qa{background:#08080a;border:1px solid var(--border);border-radius:12px;padding:13px 15px;margin:10px 0;font-size:13px}
+.qa .q{color:#fff;font-weight:600;margin-bottom:6px}
+.rowflex{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.mt{margin-top:12px}.hint{color:var(--faint);font-size:12px}
+.view{display:none}.view.active{display:block;animation:fade .25s ease-out}
+@keyframes fade{from{opacity:0;transform:translateY(10px)}}
+.chart-box{background:#08080a;border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+.chart-box .t,.ct{font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
+.statusline{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--faint)}
+.statusline .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+footer.foot{border-top:1px solid var(--border);padding:26px 24px;text-align:center;color:var(--faint);font-size:12px}
+</style>
+</head>
+<body>
+<header class="topnav" id="topnav">
+  <div class="nav-inner">
+    <a class="brand" href="#" onclick="goView('overview');return false;">
+      <span class="wordmark">AgentOps<span>AI</span></span>
+    </a>
+    <nav class="nav-links">
+      <button class="nav-item active" data-view="overview">Overview</button>
+      <button class="nav-item" data-view="runs">Runs</button>
+      <button class="nav-item" data-view="agents">Agents</button>
+      <button class="nav-item" data-view="playground">Playground</button>
+    </nav>
+    <div class="nav-actions">
+      <span class="statusline"><span class="dot"></span><span id="healthLine">backend …</span></span>
+      <button class="ghost sm" id="keyBtn" onclick="openKeyModal()">API key</button>
+      <button class="ghost sm" onclick="loadAll()">Refresh</button>
+      <button class="sm" onclick="goPlayground()">New run</button>
+    </div>
+  </div>
+</header>
+
+<section class="hero">
+  <video autoplay muted loop playsinline src="https://cdn.sceneai.art/Hero%20Section%20Video/50b4f304-cdca-4e12-8735-580d225834be.mp4"></video>
+  <div class="kicker">Agent observability and evaluation</div>
+  <h1>AgentOps<span>AI</span></h1>
+  <p class="tag">Every agent execution, traced. Models, tools, latency, tokens and cost, with proof of how your agent reached its answer.</p>
+  <div class="cta">
+    <button onclick="goPlayground()">Start a run</button>
+    <button class="ghost" onclick="goRuns()">Explore traces</button>
+  </div>
+  <div class="cue">Scroll</div>
+</section>
+
+<main class="main" id="content">
+  <div class="pagehead">
+    <h2 id="viewTitle">Overview</h2>
+    <div class="sub" id="viewSub">Trace, debug, evaluate &amp; measure AI-agent executions.</div>
+  </div>
+
+  <!-- OVERVIEW -->
+  <section class="view active" id="v-overview">
+    <div class="cards" id="cards">
+      <div class="card"><div class="k">Total runs</div><div class="v" id="m_runs">...</div><div class="d" id="d_runs"></div></div>
+      <div class="card"><div class="k">Success rate</div><div class="v" id="m_success">...</div><div class="d" id="d_success"></div></div>
+      <div class="card"><div class="k">Avg latency</div><div class="v" id="m_lat">...</div><div class="d">per run</div></div>
+      <div class="card"><div class="k">Avg cost</div><div class="v" id="m_cost">...</div><div class="d" id="d_cost"></div></div>
+      <div class="card"><div class="k">Total tokens</div><div class="v" id="m_tok">...</div><div class="d">in + out</div></div>
+    </div>
+    <div class="grid2">
+      <div class="panel"><h3>Latency per run</h3><p class="desc">Most recent runs in seconds. Click a bar to open the trace.</p><div class="chart-box"><div id="latChart"><div class="skel"></div></div></div></div>
+      <div class="panel"><h3>Run outcomes</h3><p class="desc">Success vs error distribution.</p><div id="donut" style="display:flex;gap:18px;align-items:center"></div>
+        <div class="mt"><h3>Cost by agent</h3><p class="desc">Average cost per run.</p><div id="costAgents"></div></div>
+      </div>
+    </div>
+    <div class="panel"><h3>Recent runs</h3><p class="desc">Latest executions across all agents.</p><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Run</th><th>Agent</th><th>Latency</th><th>Tokens</th><th>Cost</th><th>Status</th><th>Time</th></tr></thead><tbody id="recentBody"></tbody></table></div></div>
+  </section>
+
+  <!-- RUNS -->
+  <section class="view" id="v-runs">
+    <div class="panel">
+      <div class="filters">
+        <input class="search" id="runSearch" placeholder="Search input / output…" oninput="renderRuns()" style="max-width:280px"/>
+        <select class="in" id="runAgentFilter" onchange="renderRuns()" style="max-width:220px"><option value="">All agents</option></select>
+        <button class="chip active" data-f="all" onclick="setStatusFilter('all',this)">All</button>
+        <button class="chip" data-f="success" onclick="setStatusFilter('success',this)">Success</button>
+        <button class="chip" data-f="error" onclick="setStatusFilter('error',this)">Error</button>
+      </div>
+      <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Run</th><th>Agent</th><th>Latency</th><th>Tokens</th><th>Cost</th><th>Status</th><th>Eval</th><th>Time</th></tr></thead><tbody id="runsBody"></tbody></table></div>
+    </div>
+    <div class="panel" id="detailPanel" style="display:none">
+      <div class="rowflex"><h3 style="margin:0" id="dTitle">Run detail</h3><span id="dBadges"></span><div class="spacer" style="flex:1"></div>
+        <button class="ghost sm" onclick="evaluateCurrent()" id="evalBtn">Evaluate</button>
+        <button class="ghost sm" onclick="closeDetail()">Close</button></div>
+      <div class="qa"><div class="q">Input</div><div id="dQ"></div><div class="q mt">Output</div><div id="dA"></div></div>
+      <div class="sec-t">Execution waterfall. Select a span to inspect.</div>
+      <div class="waterfall" id="waterfall"></div>
+      <div class="inspector" id="inspector"><span class="hint">Select a span above.</span></div>
+      <div class="sec-t">Evaluation</div>
+      <div id="evalBox"><span class="hint">Not evaluated yet. Click Evaluate.</span></div>
+    </div>
+  </section>
+
+  <!-- AGENTS -->
+  <section class="view" id="v-agents">
+    <div class="panel"><div class="rowflex"><div><h3>Agents</h3><p class="desc" style="margin:0">Each agent versions its system prompt automatically.</p></div><div class="spacer" style="flex:1"></div><button onclick="openModal()">+ Create agent</button></div>
+      <div class="agent-grid mt" id="agentGrid"></div></div>
+  </section>
+
+  <!-- PLAYGROUND -->
+  <section class="view" id="v-playground">
+    <div class="grid2">
+      <div class="panel"><h3>Execute an agent</h3><p class="desc">Runs the full LLM to tools to LLM pipeline with tracing. Keyless demo works out of the box. Add your API key via the nav bar for real LLM answers.</p>
+        <label class="lbl">Agent</label><div class="agent-grid" id="pgAgents" style="grid-template-columns:1fr"></div>
+        <label class="lbl">Input</label><textarea class="in" id="runInput" rows="3">Explain the latest developments in battery technology.</textarea>
+        <button id="runBtn" onclick="createRun()">Execute & trace →</button>
+        <div class="hint mt" id="runHint"></div>
+        <div id="pgSteps" class="mt"></div></div>
+      <div class="panel"><h3>Result</h3><p class="desc">Answer plus trace summary. Full trace opens in Runs.</p><div id="pgResult"><div class="empty">No run yet. Execute an agent to see the full trace build.</div></div></div>
+    </div>
+  </section>
+
+  <!-- CHAT REMOVED : keep the backend /api/chat endpoint, no UI surface -->
+
+</main>
+
+<footer class="foot">AgentOpsAI traces, evaluates and measures every AI agent execution.</footer>
+
+<div class="modal-bg" id="keyBg"><div class="modal">
+  <h3>Your API key <span style="color:var(--faint);font-weight:500;font-size:13px">(optional)</span></h3>
+  <p class="desc">Try agents with a real LLM instead of the built-in keyless demo.</p>
+  <label class="lbl">Provider</label><select class="in" id="k_provider"><option value="auto">Auto-detect from key</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option></select>
+  <label class="lbl">API key</label><input class="in mono" id="k_key" type="password" placeholder="sk-…  or  sk-ant-…" autocomplete="off" spellcheck="false"/>
+  <div class="panel" style="background:rgba(74,222,128,.06);border-color:rgba(74,222,128,.3);padding:12px 14px;margin:12px 0 0">
+    <span style="font-size:12.5px"><b>Private by design:</b> your key is stored <b>only in this browser</b> (localStorage) and sent with your requests over HTTPS. The server uses it only for that request, in memory. It is never saved to the database, never written into traces, and never logged. You can inspect every network call in DevTools. Remove it anytime below.</span>
+  </div>
+  <div class="rowflex mt"><button onclick="saveKey()">Save in this browser</button><button class="danger sm" onclick="clearKey()">Remove</button><button class="ghost" onclick="closeKeyModal()">Cancel</button></div>
+</div></div>
+<div class="modal-bg" id="modalBg"><div class="modal">
+  <h3>New agent</h3><p class="desc">Creates the agent and stores its first prompt version.</p>
+  <label class="lbl">Name</label><input class="in" id="a_name" value="Research Assistant"/>
+  <label class="lbl">Model</label><input class="in" id="a_model" value="gpt-4o-mini"/>
+  <label class="lbl">Description</label><input class="in" id="a_desc" value="Researches technical topics using web/search tools."/>
+  <label class="lbl">System prompt</label><textarea class="in" id="a_prompt" rows="3">You are a research assistant. Use search tools, then synthesize a concise sourced answer.</textarea>
+  <div class="rowflex mt"><button onclick="createAgent()">Create agent</button><button class="ghost" onclick="closeModal()">Cancel</button></div>
+</div></div>
+<div id="toast"></div>
+
+<script>
+let AGENTS=[], RUNS=[], OVERVIEW=null, STATUS_F="all", CUR_RUN=null, CUR_TRACES=null, CUR_SPAN=0, SEL_AGENT=null;
+/* ---------- utils ---------- */
+const $=id=>document.getElementById(id);
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function toast(m){const d=document.createElement("div");d.className="toast-msg";d.textContent=m;$("toast").appendChild(d);setTimeout(()=>d.remove(),3000);}
+function byokHeaders(){try{const k=localStorage.getItem("agentops_llm_key")||"",p=localStorage.getItem("agentops_llm_provider")||"";if(k)return{"X-LLM-Key":k,"X-LLM-Provider":p==="auto"?"":p};}catch(e){}return{};}
+async function api(p,o={}){const merged={...byokHeaders(),...((o&&o.headers)||{})};const opts={...o,headers:{"Content-Type":"application/json",...merged}};const r=await fetch(p,opts);const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.detail||r.statusText);return d;}
+function openKeyModal(){try{$("k_provider").value=localStorage.getItem("agentops_llm_provider")||"auto";$("k_key").value=localStorage.getItem("agentops_llm_key")||"";}catch(e){}$("keyBg").classList.add("open");}
+function closeKeyModal(){$("keyBg").classList.remove("open");}
+function saveKey(){try{const k=$("k_key").value.trim(),p=$("k_provider").value;if(!k){toast("Paste a key first, or Remove.");return;}localStorage.setItem("agentops_llm_key",k);localStorage.setItem("agentops_llm_provider",p);}catch(e){toast("Browser storage unavailable.");return;}closeKeyModal();updateKeyBadge();toast("Key saved in this browser only.");}
+function clearKey(){try{localStorage.removeItem("agentops_llm_key");localStorage.removeItem("agentops_llm_provider");}catch(e){}closeKeyModal();updateKeyBadge();toast("Key removed from this browser.");}
+function updateKeyBadge(){let k="";try{k=localStorage.getItem("agentops_llm_key")||"";}catch(e){}const b=$("keyBtn");if(k){b.textContent="Key set";b.style.borderColor="rgba(74,222,128,.5)";b.style.color="var(--green)";}else{b.textContent="API key";b.style.borderColor="";b.style.color="";}}
+$("keyBg").addEventListener("click",e=>{if(e.target.id==="keyBg")closeKeyModal();});
+updateKeyBadge();
+function rel(ts){if(!ts)return "n/a";const s=Date.now()/1000-ts;if(s<60)return Math.floor(s)+"s ago";if(s<3600)return Math.floor(s/60)+"m ago";if(s<86400)return Math.floor(s/3600)+"h ago";return new Date(ts*1000).toLocaleDateString();}
+function fmtLat(ms){ms=ms||0;return ms>=1000?(ms/1000).toFixed(2)+"s":Math.round(ms)+"ms";}
+function fmtCost(c){c=Number(c)||0;return "$"+(c<0.01?c.toFixed(5):c.toFixed(4));}
+function agentName(id){const a=AGENTS.find(x=>x.id===id);return a?a.name:id.slice(0,14);}
+function badge(st){return `<span class="badge ${st}">${st}</span>`;}
+function scoreColor(v){return v>=0.8?"var(--green)":v>=0.5?"var(--amber)":"var(--red)";}
+/* ---------- nav ---------- */
+const TITLES={overview:["Overview","Trace, debug, evaluate and measure AI agent executions."],runs:["Runs and Traces","Every execution, fully inspectable."],agents:["Agents","Manage agents and their prompt versions."],playground:["Playground","Execute an agent and watch the trace build."]};
+document.querySelectorAll(".nav-item").forEach(n=>n.onclick=()=>goView(n.dataset.view));
+function goView(v){document.querySelectorAll(".nav-item").forEach(x=>x.classList.toggle("active",x.dataset.view===v));document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));$("v-"+v).classList.add("active");$("viewTitle").textContent=TITLES[v][0];$("viewSub").textContent=TITLES[v][1];document.getElementById("content").scrollIntoView({behavior:"smooth"});}
+function goPlayground(){goView("playground");}
+function goRuns(){goView("runs");}
+window.addEventListener("scroll",()=>{$("topnav").classList.toggle("scrolled",window.scrollY>20);},{passive:true});
+/* ---------- loaders ---------- */
+async function loadAll(){await Promise.allSettled([loadHealth(),loadAgents(),loadOverview(),loadRuns()]);}
+async function loadHealth(){try{const h=await api("/api/health");$("healthLine").textContent=`${h.provider} · ${h.docs_indexed} docs · ${h.chunks_indexed} chunks`;}catch(e){$("healthLine").textContent="backend offline";}}
+async function loadAgents(){try{AGENTS=await api("/api/agents");renderAgents();}catch(e){toast("agents: "+e.message);}}
+async function loadOverview(){try{OVERVIEW=await api("/api/analytics/overview");renderOverview();}catch(e){}}
+async function loadRuns(){try{RUNS=await api("/api/runs?limit=100");renderRuns();renderRecent();}catch(e){toast("runs: "+e.message);}}
+/* ---------- overview ---------- */
+function renderOverview(){const o=OVERVIEW;if(!o)return;
+$("m_runs").textContent=o.total_runs;$("d_runs").textContent=`${o.error_count} errors`;
+$("m_success").textContent=(o.success_rate*100).toFixed(1)+"%";$("d_success").textContent=`${o.success_count}/${o.total_runs} ok`;
+$("m_lat").textContent=o.avg_latency_s+"s";$("m_cost").textContent=fmtCost(o.avg_cost);$("d_cost").textContent="total "+fmtCost(o.total_cost);
+$("m_tok").textContent=o.total_tokens>=1e6?(o.total_tokens/1e6).toFixed(2)+"M":o.total_tokens>=1e3?(o.total_tokens/1e3).toFixed(1)+"K":o.total_tokens;
+const rec=(o.recent_runs||[]).slice().reverse();
+if(!rec.length){$("latChart").innerHTML='<span class="hint">No runs yet.</span>';}
+else{const max=Math.max(...rec.map(r=>r.latency_ms||1),1);const W=560,H=130,n=rec.length,bw=Math.min(46,(W-20)/n-8);
+let bars=rec.map((r,i)=>{const h=Math.max(4,(r.latency_ms||0)/max*(H-30));const x=10+i*((W-20)/n);const c=r.status==="success"?"url(#g1)":"#f87171";return `<rect x="${x.toFixed(1)}" width="${bw}" y="${(H-8-h).toFixed(1)}" height="${h.toFixed(1)}" rx="4" fill="${c}" data-i="${o.recent_runs.length-1-i}" style="cursor:pointer"><title>#${r.id.slice(-6)} ${fmtLat(r.latency_ms)} ${r.status}</title></rect>`;}).join("");
+$("latChart").innerHTML=`<svg viewBox="0 0 ${W} ${H}" style="width:100%" id="latSvg"><defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#71717a"/></linearGradient></defs>${bars}</svg>`;
+$("latSvg").querySelectorAll("rect").forEach(b=>b.onclick=()=>{const r=o.recent_runs[+b.dataset.i];if(r){goRuns();showRun(r.id);}});}
+const tot=o.total_runs||1,ok=o.success_count||0,er=o.error_count||0;
+$("donut").innerHTML=`<svg width="120" height="120" viewBox="0 0 42 42"><circle cx="21" cy="21" r="15.9" fill="none" stroke="#1F1F22" stroke-width="6"/><circle cx="21" cy="21" r="15.9" fill="none" stroke="#4ade80" stroke-width="6" stroke-dasharray="${(ok/tot*100).toFixed(1)} 100" stroke-linecap="round" transform="rotate(-90 21 21)"/><text x="21" y="24" text-anchor="middle" fill="#fff" font-size="8" font-weight="800">${(o.success_rate*100).toFixed(0)}%</text></svg><div><div>Success <b style="color:var(--green)">${ok}</b></div><div>Errors <b style="color:var(--red)">${er}</b></div><div class="hint">of ${tot} runs</div></div>`;
+$("costAgents").innerHTML=(o.per_agent||[]).map(p=>{const mx=Math.max(...o.per_agent.map(x=>x.avg_cost||0),1e-9);const w=Math.max(3,(p.avg_cost||0)/mx*100);return `<div style="margin:7px 0"><div class="rowflex" style="justify-content:space-between"><span>${esc(agentName(p.agent_id))}</span><span class="hint">${p.runs} runs · ${fmtCost(p.avg_cost)}</span></div><div style="height:6px;background:rgba(255,255,255,.06);border-radius:3px"><div style="width:${w}%;height:100%;border-radius:3px;background:#fff"></div></div></div>`;}).join("")||'<span class="hint">No agents yet.</span>';}
+/* ---------- runs table ---------- */
+function runRow(x,showEval){return `<tr class="clickable" onclick="showRun('${x.id}')"><td class="mono">#${x.id.slice(-6)}</td><td>${esc(agentName(x.agent_id))}</td><td class="num">${fmtLat(x.latency_ms)}</td><td class="num">${(x.total_tokens||0).toLocaleString()}</td><td class="num">${fmtCost(x.estimated_cost)}</td><td>${badge(x.status)}</td>${showEval?`<td class="hint">→</td>`:""}<td class="hint">${rel(x.started_at)}</td></tr>`;}
+function renderRecent(){$("recentBody").innerHTML=RUNS.slice(0,8).map(x=>runRow(x)).join("")||'<tr><td colspan="7"><div class="empty">No runs yet.</div></td></tr>';}
+function setStatusFilter(f,el){STATUS_F=f;document.querySelectorAll(".chip").forEach(c=>c.classList.remove("active"));el.classList.add("active");renderRuns();}
+function renderRuns(){const q=($("runSearch").value||"").toLowerCase(),af=$("runAgentFilter").value;
+const sel=$("runAgentFilter");const cur=sel.value;sel.innerHTML='<option value="">All agents</option>'+AGENTS.map(a=>`<option value="${a.id}">${esc(a.name)}</option>`).join("");sel.value=cur||af;
+const list=RUNS.filter(x=>(STATUS_F==="all"||x.status===STATUS_F)&&(!af||x.agent_id===af)&&(!q||(x.input+" "+(x.output||"")).toLowerCase().includes(q)));
+$("runsBody").innerHTML=list.slice(0,50).map(x=>runRow(x,true)).join("")||'<tr><td colspan="8"><div class="empty">No runs match the filters.</div></td></tr>';}
+/* ---------- run detail ---------- */
+async function showRun(id){goRunsNotNav();const p=$("detailPanel");p.style.display="block";p.scrollIntoView({behavior:"smooth",block:"start"});
+$("dTitle").textContent="Loading…";$("waterfall").innerHTML='<div class="skel"></div><div class="skel"></div><div class="skel"></div>';
+try{const t=await api(`/api/runs/${id}/traces`);const run=await api(`/api/runs/${id}`);CUR_RUN=run;CUR_TRACES=t;
+$("dTitle").textContent=`RUN #${id.slice(-6)}`;$("dBadges").innerHTML=`${badge(run.status)} <span class="hint">${fmtLat(run.latency_ms)} · ${(run.total_tokens||0).toLocaleString()} tok · ${fmtCost(run.estimated_cost)} · prompt v${run.prompt_version}</span>`;
+$("dQ").textContent=run.input;$("dA").textContent=(run.output||"").slice(0,1200)+((run.output||"").length>1200?"…":"");
+const max=Math.max(...t.spans.map(s=>s.latency_ms||1),1);
+$("waterfall").innerHTML=t.spans.map((s,i)=>{const w=Math.max(2,(s.latency_ms||0)/max*100);return `<div class="wf-row${i===0?" sel":""}" data-type="${s.span_type}" onclick="selectSpan(${i})"><div class="wf-name"><span class="tag ${s.span_type}">${s.span_type.toUpperCase()}</span>${esc(s.name)}</div><div class="wf-bar"><div class="wf-fill" style="width:${w}%"></div></div><div class="wf-ms">${fmtLat(s.latency_ms)}</div></div>`;}).join("");
+selectSpan(0);renderEval(t.evaluation);}catch(e){$("dTitle").textContent="Error: "+e.message;}}
+function goRunsNotNav(){document.querySelectorAll(".nav-item").forEach(x=>x.classList.toggle("active",x.dataset.view==="runs"));document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));$("v-runs").classList.add("active");$("viewTitle").textContent=TITLES.runs[0];$("viewSub").textContent=TITLES.runs[1];}
+function closeDetail(){$("detailPanel").style.display="none";CUR_RUN=null;}
+function selectSpan(i){CUR_SPAN=i;document.querySelectorAll(".wf-row").forEach((n,j)=>n.classList.toggle("sel",j===i));
+const s=CUR_TRACES.spans[i],box=$("inspector");const lc=(CUR_TRACES.llm_calls||[]).find(c=>c.span_id===s.id),tc=(CUR_TRACES.tool_calls||[]).find(c=>c.span_id===s.id);
+let h=`<h4><span class="tag ${s.span_type}">${s.span_type.toUpperCase()}</span> ${esc(s.name)} ${badge(s.status)}</h4><div class="kv"><b>Latency</b><span>${fmtLat(s.latency_ms)}</span><b>Started</b><span>${s.started_at?new Date(s.started_at*1000).toLocaleString():"unknown"}</span></div>`;
+if(lc)h+=`<div class="kv"><b>Model</b><span class="mono">${esc(lc.model)}</span><b>Tokens</b><span>${lc.input_tokens} in / ${lc.output_tokens} out</span><b>Cost</b><span>${fmtCost(lc.cost)}</span></div><div class="sec-t">Prompt <button class="copybtn" onclick="copyTxt()">copy</button></div><pre class="code" id="lp">${esc(lc.prompt)}</pre><div class="sec-t">Response</div><pre class="code">${esc(lc.response)}</pre>`;
+else if(tc)h+=`<div class="kv"><b>Tool</b><span class="mono">${esc(tc.tool_name)}</span><b>Status</b><span>${tc.status}</span></div><div class="sec-t">Input</div><pre class="code">${esc(tc.input)}</pre><div class="sec-t">Output</div><pre class="code">${esc(tc.output)}</pre>`;
+else h+=`<div class="sec-t">Input</div><pre class="code">${esc(s.input_json||"none")}</pre><div class="sec-t">Output</div><pre class="code">${esc((s.output_json||"none").slice(0,4000))}</pre>`;
+try{const m=JSON.parse(s.metadata_json||"{}");if(Object.keys(m).length)h+=`<div class="sec-t">Metadata</div><pre class="code">${esc(JSON.stringify(m,null,2))}</pre>`;}catch(e){}
+box.innerHTML=h;}
+function copyTxt(){const t=document.querySelector("#inspector pre");if(t)navigator.clipboard.writeText(t.textContent).then(()=>toast("Copied")); }
+function renderEval(ev){const box=$("evalBox");if(!ev){box.innerHTML='<span class="hint">Not evaluated yet. Click Evaluate.</span>';return;}
+box.innerHTML=`<div class="scores">${["accuracy","relevance","faithfulness","instruction_following","overall"].map(k=>`<div class="score"><div class="n">${k.replace("_"," ")}</div><div class="sval" style="color:${scoreColor(ev[k])}">${ev[k]}</div><div class="bar"><i style="width:${(ev[k]*100).toFixed(0)}%"></i></div></div>`).join("")}</div><div class="hint mt">method: ${esc(ev.method||"")}</div>`;}
+async function evaluateCurrent(){if(!CUR_RUN)return;$("evalBox").innerHTML='<div class="skel"></div>';try{const e=await api(`/api/runs/${CUR_RUN.id}/evaluate`,{method:"POST"});renderEval(e);toast("Evaluation saved ("+e.method+")");loadOverview();}catch(err){$("evalBox").textContent="Error: "+err.message;}}
+/* ---------- agents ---------- */
+function renderAgents(){const g=$("agentGrid");g.innerHTML=AGENTS.map(a=>`<div class="agent-card${SEL_AGENT===a.id?" sel":""}" onclick="selectAgent('${a.id}')"><span class="model">${esc(a.model)}</span><h4>${esc(a.name)}</h4><p>${esc(a.description||"No description")}</p><div class="hint mono">${a.id.slice(0,18)}…</div></div>`).join("")||'<span class="hint">No agents yet.</span>';
+if(!SEL_AGENT&&AGENTS.length)SEL_AGENT=AGENTS[0].id;
+$("pgAgents").innerHTML=AGENTS.map(a=>`<div class="agent-card${SEL_AGENT===a.id?" sel":""}" onclick="selectAgent('${a.id}')"><span class="model">${esc(a.model)}</span><h4>${esc(a.name)}</h4><p>${esc(a.description||"")}</p></div>`).join("");}
+function selectAgent(id){SEL_AGENT=id;renderAgents();}
+function openModal(){$("modalBg").classList.add("open");}
+function closeModal(){$("modalBg").classList.remove("open");}
+$("modalBg").addEventListener("click",e=>{if(e.target.id==="modalBg")closeModal();});
+async function createAgent(){try{const d=await api("/api/agents",{method:"POST",body:JSON.stringify({name:$("a_name").value,model:$("a_model").value,description:$("a_desc").value,system_prompt:$("a_prompt").value})});toast("Agent created: "+d.name);closeModal();SEL_AGENT=d.id;await loadAgents();}catch(e){toast(e.message);}}
+/* ---------- playground ---------- */
+async function createRun(){if(!SEL_AGENT){toast("Create an agent first.");return;}const q=$("runInput").value.trim();if(!q){toast("Enter an input.");return;}
+$("runBtn").disabled=true;$("runHint").textContent="Executing. Tracing every span from LLM to tools to LLM.";
+$("pgSteps").innerHTML=["Planning the search query","Searching docs with WebSearch","Reranking with VectorSearch","Synthesizing the final answer"].map(s=>`<div class="hint">Pending · ${s}</div>`).join("");
+try{const r=await api("/api/runs",{method:"POST",body:JSON.stringify({agent_id:SEL_AGENT,input:q})});
+$("runHint").textContent=`Done in ${fmtLat(r.latency_ms)} · ${(r.total_tokens||0).toLocaleString()} tokens · ${fmtCost(r.estimated_cost)}`;
+$("pgSteps").innerHTML=["Planning the search query","Searching docs with WebSearch","Reranking with VectorSearch","Synthesizing the final answer"].map(s=>`<div class="hint" style="color:var(--green)">Done · ${s}</div>`).join("");
+$("pgResult").innerHTML=`<div class="qa"><div class="q">Answer ${badge(r.status)}</div><div>${esc((r.output||"").slice(0,900))}</div></div><div class="rowflex"><button class="sm" onclick="showRun('${r.id}')">Open full trace</button><button class="ghost sm" onclick="evaluateRunId('${r.id}')">Evaluate</button></div><div id="pgEval"></div>`;
+await loadOverview();await loadRuns();}catch(e){toast(e.message);}finally{$("runBtn").disabled=false;}}
+async function evaluateRunId(id){try{const e=await api(`/api/runs/${id}/evaluate`,{method:"POST"});$("pgEval").innerHTML=`<div class="scores">${["accuracy","relevance","faithfulness","instruction_following","overall"].map(k=>`<div class="score"><div class="n">${k.replace("_"," ")}</div><div class="sval" style="color:${scoreColor(e[k])}">${e[k]}</div></div>`).join("")}</div>`;}catch(err){toast(err.message);}}
+loadAll();
+</script>
+</body>
+</html>

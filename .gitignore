@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.DS_Store
+*.db
+*.log
+
+# Personal files (not part of the project)
+resume.tex
+Sachin_Hebbar_Resume.tex
