@@ -1,3 +1,3 @@
-"""Chat Support Agent - a docs-grounded RAG chat backend."""
+"""AgentOpsAI - agent observability and evaluation platform."""
 
 __version__ = "1.0.0"

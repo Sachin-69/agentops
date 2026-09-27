@@ -8,7 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Central configuration for the chat support agent."""
+    """Central configuration for the AgentOpsAI platform."""
 
     model_config = SettingsConfigDict(
         env_file=".env",

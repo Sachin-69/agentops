@@ -1,4 +1,4 @@
-"""Smoke tests for the docs-grounded chat support agent.
+"""Smoke tests for the docs-grounded agent.
 
 Run with:  python test_agent.py
 Verifies the core requirement: in-scope questions get answered from docs,
